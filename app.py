@@ -10,7 +10,9 @@ app.debug = True
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'experiments.db')
 
+
 db = SQLAlchemy(app)
+
 
 @app.cli.command('db_create')
 def db_create():
@@ -118,21 +120,21 @@ class Planet(db.Model):
     distance = Column(Float)
 
 
-class UserSchema(ma.Schema):
-    class Meta:
-        fields = ('id', 'first_name', 'last_name', 'email', 'password')
+# class UserSchema(ma.Schema):
+#     class Meta:
+#         fields = ('id', 'first_name', 'last_name', 'email', 'password')
+#
+#
+# class PlanetSchema(ma.Schema):
+#     class Meta:
+#         fields = ('planet_id', 'planet_name', 'planet_type', 'home_star',
+#                   'mass', 'radius', 'distance')
 
 
-class PlanetSchema(ma.Schema):
-    class Meta:
-        fields = ('planet_id', 'planet_name', 'planet_type', 'home_star',
-                  'mass', 'radius', 'distance')
-
-
-user_schema = UserSchema()
-users_schema = UserSchema(many = True)
-planet_schema = PlanetSchema()
-planets_schema = PlanetSchema(many = True)
+# user_schema = UserSchema()
+# users_schema = UserSchema(many = True)
+# planet_schema = PlanetSchema()
+# planets_schema = PlanetSchema(many = True)
 
 
 if __name__ == '__main__':
