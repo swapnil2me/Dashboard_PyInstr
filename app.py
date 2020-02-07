@@ -1,143 +1,140 @@
-from flask import Flask, jsonify, request
+import io
+import random
+from flask import Flask, jsonify, request, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, create_engine
 from flask_marshmallow import Marshmallow
 import os
+import helper_functions as hf
+import pandas as pd
+import numpy as np
+import time
 
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.backends.backend_svg import FigureCanvasSVG
 
+data_directory = "E:/Swapnil/temp"
+experiment_name = 'Dispersion_2020_02_07'
+startTime = time.time()
 app = Flask(__name__)
 app.debug = True
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'experiments.db')
 
 
-db = SQLAlchemy(app)
+engine = create_engine('sqlite:///'+os.path.join(data_directory, 'experiments.db'), echo=False)
+
+
+@app.route("/")
+def index():
+    """ Returns html with the img tag for your plot.
+    """
+    num_x_points = int(request.args.get("num_x_points", 50))
+    # in a real app you probably want to use a flask template.
+    return render_template("index.html", num_x_points=num_x_points)
+    # from flask import render_template
+    # return render_template("yourtemplate.html", num_x_points=num_x_points)
+
+
+@app.route("/matplot-as-image-<int:num_x_points>.png")
+def plot_png(num_x_points=50):
+    """ renders the plot on the fly.
+    """
+    fig = Figure()
+    axis = fig.add_subplot(1, 1, 1)
+    df = getCurrentDF()[['f','A','P']]
+    x_points = df['f']
+    axis.plot(x_points, df['A'])
+
+    output = io.BytesIO()
+    FigureCanvasAgg(fig).print_png(output)
+    return Response(output.getvalue(), mimetype="image/png")
+
+
+@app.route("/matplot-as-image-<int:num_x_points>.svg")
+def plot_svg(num_x_points=50):
+    """ renders the plot on the fly.
+    """
+    fig = Figure()
+    axis = fig.add_subplot(1, 1, 1)
+    df = getCurrentDF()[['f','A','P']]
+    x_points = df['f']
+    axis.plot(x_points, df['P'])
+
+    output = io.BytesIO()
+    FigureCanvasSVG(fig).print_svg(output)
+    return Response(output.getvalue(), mimetype="image/svg+xml")
+
+
+@app.route("/matplot-as-disp-<int:num_x_points>.svg")
+def plot_disp_svg(num_x_points=50):
+    """ renders the plot on the fly.
+    """
+    tableDict = getExperimentDF()
+    for key, val in tableDict.items():
+        print(key)
+        df = val['df']
+        sweepSpace = val['sweepSpace']
+        for sweep, volt in sweepSpace.items():
+            y = df[df[sweep]==volt[0]]['f']
+            x = volt
+            X,Y = np.meshgrid(x,y)
+            ZA = np.array(df['A'])
+            ZA = ZA.reshape(X.T.shape).T
+            ZP = np.array(df['P'])
+            ZP = ZP.reshape(X.T.shape).T
+            fig, (ax0, ax1) = plt.subplots(2, 1)
+            c = ax0.pcolor(X, Y, ZA, cmap='RdBu')
+            fig.colorbar(c, ax=ax0)
+            c = ax1.pcolor(X, Y, ZP, cmap='RdBu')
+            fig.colorbar(c, ax=ax1)
+
+    output = io.BytesIO()
+    FigureCanvasSVG(fig).print_svg(output)
+    return Response(output.getvalue(), mimetype="image/svg+xml")
 
 
 @app.cli.command('db_create')
 def db_create():
-    db.create_all()
+    hf.createExperimentDbTable(data_directory,experiment_name)
     print('Database Created !')
 
 
-@app.cli.command('db_drop')
-def db_drop():
-    db.drop_all()
-    print('Database Dropped !')
+def list_tables():
+    return engine.table_names()
 
 
-@app.cli.command('db_seed')
-def db_seed():
-    mercury = Planet(planet_name = 'Mercury',
-                     planet_type = 'Class D',
-                     home_star = 'Sol',
-                     mass = 3.258e23,
-                     radius = 1516,
-                     distance = 35.98e6)
-    venus = Planet(planet_name = 'Venus',
-                     planet_type = 'Class K',
-                     home_star = 'Sol',
-                     mass = 4.867e23,
-                     radius = 3760,
-                     distance = 67.24e6)
-    earth = Planet(planet_name = 'Earth',
-                     planet_type = 'Class M',
-                     home_star = 'Sol',
-                     mass = 5.972e23,
-                     radius = 3959,
-                     distance = 92.96e6)
+def getCurrentDF():
+    #print('--')
+    #print((mylist))
+    global startTime
+    print('Looking for changes')
+    startTime = hf.updateCurrentRun(data_directory,experiment_name, startTime)
+    print('Updated DF on {}'.format(startTime))
+    table = 'Dispersion_2020_02_07'
+    df = pd.read_sql_table(table,'sqlite:///' + os.path.join(data_directory, 'experiments.db'))
+    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index'] and len(df[column].unique()) > 1}
+    currentSweep = {}
+    for key, val in sweepSpace.items():
+        currentSweep[key] = val[-1]
+    return pd.merge(pd.DataFrame(currentSweep, index =[0]), df)
 
-    db.session.add(mercury)
-    db.session.add(venus)
-    db.session.add(earth)
-    db.session.commit()
-
-    test_user = User(first_name = 'William',
-                     last_name = 'Herschel',
-                     email = 'test@test.com',
-                     password = 'password')
-
-    db.session.add(test_user)
-    db.session.commit()
-
-    print('Database Seeded !')
-
-
-@app.route('/')
-def hello_world():
-    return jsonify(message='Hellow World !!')
-
-
-@app.route('/not_found')
-def not_found():
-    return jsonify(message = 'Resource Not Found'), 404
-
-
-@app.route('/parameters')
-def parameters():
-    name = request.args.get('name')
-    age = int(request.args.get('age'))
-    if age < 18:
-        return jsonify(message = name + ': Not old enoug.'), 401
-    else:
-        return jsonify(message = name + ': Welcome.')
-
-
-@app.route('/url_variables/<string:name>/<int:age>')
-def url_variables(name: str, age: int):
-    if age < 18:
-        return jsonify(message = name + ': Not old enoug.'), 401
-    else:
-        return jsonify(message = name + ': Welcome.')
-
-
-@app.route('/planets', methods = ['GET'])
-def planets():
-    planets_list = Planet.query.all()
-    result = planets_schema.dump(planets_list)
-    return jsonify(result)
-
-
-
-# Database Models
-class User(db.Model):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key = True)
-    first_name = Column(String)
-    last_name = Column(String)
-    email = Column(String, unique = True)
-    password = Column(String)
-
-
-class Planet(db.Model):
-    __tablename__ = 'planets'
-    planet_id = Column(Integer, primary_key = True)
-    planet_name = Column(String)
-    planet_type = Column(String)
-    home_star = Column(String)
-    mass = Column(Float)
-    radius = Column(Float)
-    distance = Column(Float)
-
-
-# class UserSchema(ma.Schema):
-#     class Meta:
-#         fields = ('id', 'first_name', 'last_name', 'email', 'password')
-#
-#
-# class PlanetSchema(ma.Schema):
-#     class Meta:
-#         fields = ('planet_id', 'planet_name', 'planet_type', 'home_star',
-#                   'mass', 'radius', 'distance')
-
-
-# user_schema = UserSchema()
-# users_schema = UserSchema(many = True)
-# planet_schema = PlanetSchema()
-# planets_schema = PlanetSchema(many = True)
+def getExperimentDF():
+    #tables = list_tables()
+    table = 'Dispersion_2020_02_07'
+    tableDict = {}
+    df = pd.read_sql_table(table,'sqlite:///' + os.path.join(data_directory, 'experiments.db'))
+    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index'] and len(df[column].unique()) > 1}
+    tableDict[table] = {'df':df,
+                        'sweepSpace':sweepSpace}
+    return tableDict
 
 
 if __name__ == '__main__':
 
+    import webbrowser
+
+    #print(getCurrentDF()[['f','A','P']])
+    #webbrowser.open("http://127.0.0.1:5000/")
     app.run()
-    #db_seed()
