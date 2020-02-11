@@ -44,8 +44,7 @@ def plot_png(num_x_points=50):
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
     df = getCurrentDF()[['f','A','P']]
-    x_points = df['f']
-    axis.plot(x_points, df['A'])
+    axis.plot(df['f'], df['A'])
 
     output = io.BytesIO()
     FigureCanvasAgg(fig).print_png(output)
@@ -59,8 +58,7 @@ def plot_svg(num_x_points=50):
     fig = Figure()
     axis = fig.add_subplot(1, 1, 1)
     df = getCurrentDF()[['f','A','P']]
-    x_points = df['f']
-    axis.plot(x_points, df['P'])
+    axis.plot(df['f'], df['P'])
 
     output = io.BytesIO()
     FigureCanvasSVG(fig).print_svg(output)
