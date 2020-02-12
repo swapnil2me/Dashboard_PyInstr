@@ -1,23 +1,31 @@
+"""https://gist.github.com/tebeka/5426211
+"""
 import io
+import os
 import random
+
+from datetime import datetime as dt
+
 from flask import Flask, jsonify, request, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float, create_engine
 from flask_marshmallow import Marshmallow
-import os
-import helper_functions as hf
+
 import pandas as pd
 import numpy as np
 import time
+import base64
+
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 
-data_directory = "E:/Swapnil/temp"
-experiment_name = 'Dispersion_2020_02_07'
-startTime = time.time()
+
+data_directory = "C:/Users/nemslab4/Documents/"
+experiment_name = 'Dispersion'
+startTime = dt.now()
 app = Flask(__name__)
 app.debug = True
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -28,47 +36,52 @@ engine = create_engine('sqlite:///'+os.path.join(data_directory, 'experiments.db
 
 @app.route("/")
 def index():
-    """ Returns html with the img tag for your plot.
-    """
-    num_x_points = int(request.args.get("num_x_points", 50))
-    # in a real app you probably want to use a flask template.
-    return render_template("index.html", num_x_points=num_x_points)
-    # from flask import render_template
-    # return render_template("yourtemplate.html", num_x_points=num_x_points)
+
+    #x = int(request.args.get("x", 50))
+    return render_template("index.html")
 
 
-@app.route("/matplot-as-image-<int:num_x_points>.png")
-def plot_png(num_x_points=50):
-    """ renders the plot on the fly.
-    """
-    fig = Figure()
-    axis = fig.add_subplot(1, 1, 1)
-    df = getCurrentDF()[['f','A','P']]
-    axis.plot(df['f'], df['A'])
+@app.route("/fig")
+def plot_svg():
 
-    output = io.BytesIO()
-    FigureCanvasAgg(fig).print_png(output)
-    return Response(output.getvalue(), mimetype="image/png")
+    df = pd.read_sql_table(experiment_name,str(engine.url))
+    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index','timeStamp']}
+    df_fwd = df.loc[df['direction']==1]
+    df_bkw = df.loc[df['direction']==-1]
+    dfLen = len(df)
+    freqLen = len(df['f'].unique())
+    if dfLen%(freqLen*2) == 0:
+        plotLenFwd = freqLen
+        plotLenBkw = freqLen
+    else:
+        plotLen = dfLen%(freqLen*2)
+        if plotLen > freqLen:
+            plotLenFwd = freqLen
+            plotLenBkw = plotLen - freqLen
+        else:
+            plotLenFwd = plotLen
+            plotLenBkw = 0
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    df_fwd.tail(plotLenFwd).plot(ax=ax,x='f',y='P',style='r-')
+    df_bkw.tail(plotLenBkw).plot(ax=ax,x='f',y='P',style='b-')
+
+    ioFig = io.BytesIO()
+    fig.savefig(ioFig, format='png')
+    data = base64.encodestring(ioFig.getvalue()).decode('utf-8')
+    html = '''
+            <html>
+                <body>
+                    <img src="data:image/png;base64,{}" />
+                </body>
+            </html>
+            '''
+    return html.format(data)
 
 
-@app.route("/matplot-as-image-<int:num_x_points>.svg")
-def plot_svg(num_x_points=50):
-    """ renders the plot on the fly.
-    """
-    fig = Figure()
-    axis = fig.add_subplot(1, 1, 1)
-    df = getCurrentDF()[['f','A','P']]
-    axis.plot(df['f'], df['P'])
 
-    output = io.BytesIO()
-    FigureCanvasSVG(fig).print_svg(output)
-    return Response(output.getvalue(), mimetype="image/svg+xml")
-
-
-@app.route("/matplot-as-disp-<int:num_x_points>.svg")
-def plot_disp_svg(num_x_points=50):
-    """ renders the plot on the fly.
-    """
+@app.route("/matplot-as-disp.svg")
+def plot_disp_svg():
     tableDict = getExperimentDF()
     for key, val in tableDict.items():
         print(key)
@@ -93,46 +106,8 @@ def plot_disp_svg(num_x_points=50):
     return Response(output.getvalue(), mimetype="image/svg+xml")
 
 
-@app.cli.command('db_create')
-def db_create():
-    hf.createExperimentDbTable(data_directory,experiment_name)
-    print('Database Created !')
-
-
-def list_tables():
-    return engine.table_names()
-
-
-def getCurrentDF():
-    #print('--')
-    #print((mylist))
-    global startTime
-    print('Looking for changes')
-    startTime = hf.updateCurrentRun(data_directory,experiment_name, startTime)
-    print('Updated DF on {}'.format(startTime))
-    table = 'Dispersion_2020_02_07'
-    df = pd.read_sql_table(table,'sqlite:///' + os.path.join(data_directory, 'experiments.db'))
-    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index'] and len(df[column].unique()) > 1}
-    currentSweep = {}
-    for key, val in sweepSpace.items():
-        currentSweep[key] = val[-1]
-    return pd.merge(pd.DataFrame(currentSweep, index =[0]), df)
-
-def getExperimentDF():
-    #tables = list_tables()
-    table = 'Dispersion_2020_02_07'
-    tableDict = {}
-    df = pd.read_sql_table(table,'sqlite:///' + os.path.join(data_directory, 'experiments.db'))
-    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index'] and len(df[column].unique()) > 1}
-    tableDict[table] = {'df':df,
-                        'sweepSpace':sweepSpace}
-    return tableDict
-
-
 if __name__ == '__main__':
 
-    import webbrowser
-
-    #print(getCurrentDF()[['f','A','P']])
+    #import webbrowser
     #webbrowser.open("http://127.0.0.1:5000/")
-    app.run()
+    app.run(port=8001)

@@ -6,26 +6,17 @@
   </head>
   <body>
       <h1>Flask and matplotlib</h1>
-      <h2>Random data with num_x_points={{num_x_points}}</h2>
+      <h2>Random data with}}</h2>
       <form method=get action="/">
-        <input name="num_x_points" type=number value="{{num_x_points}}" />
+        <input name="x" type=number value="5" />
         <input type=submit value="update graph">
       </form>
-      <h3>Plot as a png</h3>
-      <img id="img" src="/matplot-as-image-{{num_x_points}}.png"
-           alt="random points as png"
-           height="200"
-      >
       <h3>Plot as a SVG</h3>
-      <img id="img" src="/matplot-as-image-{{num_x_points}}.svg"
+      <img id="img" src="/currentFreqSweep.svg"
            alt="random points as svg"
            height="200"
       >
-      <h3>Disp as a SVG</h3>
-      <img id="img" src="/matplot-as-disp-{{num_x_points}}.svg"
-           alt="random points as svg"
-           height="200"
-      >
+      
       <script>
         function refresh(node)
             {

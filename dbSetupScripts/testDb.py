@@ -1,5 +1,5 @@
 """
-https://hackersandslackers.com/sqlalchemy-data-models/
+scource: https://hackersandslackers.com/sqlalchemy-data-models/
 """
 
 import os
@@ -16,10 +16,8 @@ engine = create_engine(db_uri, echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-class ExampleModel(Base):
-    """Data model example."""
-    __tablename__ = "example_table"
-    #__table_args__ = {"schema": "example"}
+class DispersioModel(Base):
+    __tablename__ = experiment_name
 
     id = Column(Integer,
                 primary_key=True,
