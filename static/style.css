@@ -7,6 +7,16 @@ line {
   stroke: red;
 }
 
+.liveRun {
+    height: 400px;
+    width: 700px;
+}
+
+.imageSC {
+    height: 400px;
+    width: 700px;
+}
+
 .fwd {
   stroke: red;
   fill: none;

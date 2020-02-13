@@ -7,22 +7,62 @@
     <title></title>
   </head>
   <body>
+
+    <div class="liveRun">
+
+    </div>
+
+    <div class="imageSC">
+
+      <h3>Dispersion Figure</h3>
+      <img id="img" src="/fig" alt="Dispersion Figure"
+          height="500"
+      >
+
+    </div>
+
     <script type="text/javascript">
 
-      var apiURL = "http://127.0.0.1:8001/postSweepData"
+      var experiment = "{{experiment}}";
+      var apiURL = "http://127.0.0.1:8001/postSweepData-"+experiment;
       var times = 500; // gap in Milli Seconds;
+
+      function refresh(node)
+        {
+           var times = 1000; // gap in Milli Seconds;
+
+           (function startRefresh()
+           {
+              var address;
+              if(node.src.indexOf('?')>-1)
+               address = node.src.split('?')[0];
+              else
+               address = node.src;
+              node.src = address+"?time="+new Date().getTime();
+              console.log("updating ImageSC");
+              setTimeout(startRefresh,times);
+           })();
+
+        };
+        window.onload = function()
+        {
+          var node = document.getElementById('img');
+
+          refresh(node);
+
+          // you can refresh as many images you want just repeat above steps
+        };
 
       setInterval(refreshPlot, times);
       //refreshPlot();
       function refreshPlot() {
           d3.json(apiURL).get(function(error,plotData){
-            var svgtest = d3.select("body").select("svg");
+            var svgtest = d3.select(".liveRun").select("svg");
             if (!svgtest.empty()) {
-              console.log("updating !");
+              console.log("updating live plot!");
               svgtest.remove();
             }
 
-            //var plotData = JSON.parse('{{ plotData | tojson | safe}}');
             //console.log(plotData.fwd);
 
             var amplitudeFwd = plotData.fwd.A;
@@ -35,8 +75,8 @@
 
             //console.log(dataZipFwd,dataZipBkw);
 
-            var height = 300;
-            var width = 500;
+            var height = 400;
+            var width = 700;
 
             var max = d3.max(amplitudeFwd);
             var min = d3.min(amplitudeFwd);
@@ -46,19 +86,19 @@
 
             var y = d3.scaleLinear()
                       .domain([min,max])
-                      .range([height,0]);
+                      .range([300,0]);
 
             var x = d3.scaleLinear()
                       .domain([minFreq, maxFreq])
-                      .range([0, width]);
+                      .range([0, 500]);
 
             var yAxis = d3.axisLeft(y);
             var xAxis = d3.axisBottom(x);
 
-            var svg = d3.select("body").append("svg").attr("height","100%")
-                                                      .attr("width","100%");
+            var svg = d3.select(".liveRun").append("svg")
+                                            .attr("class","liveRun");
 
-            var margin = {left:50, right:50, top:40, bottom:0};
+            var margin = {left:100, right:50, top:40, bottom:0};
 
             var chartGroup = svg.append("g")
                                 .attr("transform","translate("+margin.left+","+margin.top+")");
@@ -74,10 +114,11 @@
                       .attr("class","bkw")
                       .attr("d",line(dataZipBkw));
             chartGroup.append("g").attr("class","x axis")
-                                  .attr("transform","translate(0,"+height+")")
+                                  .attr("transform","translate(0,"+300+")")
                                   .call(xAxis);
             chartGroup.append("g").attr("class","y axis").call(yAxis);
           });
+
 
       }
     </script>
