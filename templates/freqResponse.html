@@ -9,14 +9,14 @@
   <body>
 
     <div class="liveRun">
+      <h3>Current Frequency Sweep</h3>
 
     </div>
 
     <div class="imageSC">
 
       <h3>Dispersion Figure</h3>
-      <img id="img" src="/fig" alt="Dispersion Figure"
-          height="500"
+      <img id="img" src="/fig"
       >
 
     </div>
@@ -113,10 +113,23 @@
             chartGroup.append("path")
                       .attr("class","bkw")
                       .attr("d",line(dataZipBkw));
+
             chartGroup.append("g").attr("class","x axis")
                                   .attr("transform","translate(0,"+300+")")
                                   .call(xAxis);
+            chartGroup.append("text")
+                      .attr("transform","translate("+250+","+360+")")
+                      .style("text-anchor", "middle")
+                      .text("Frequency (MHz)");
+
             chartGroup.append("g").attr("class","y axis").call(yAxis);
+            chartGroup.append("text")
+                      .attr("transform", "rotate(-90)")
+                      .attr("y", 0 - margin.left)
+                      .attr("x",0 - (height / 2))
+                      .attr("dy", "1em")
+                      .style("text-anchor", "middle")
+                      .text("Amplitude (nA)");
           });
 
 

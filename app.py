@@ -5,7 +5,7 @@ import os
 import random
 
 from datetime import datetime as dt
-
+from math import ceil
 from flask import Flask, jsonify, request, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float, create_engine
@@ -24,7 +24,7 @@ from matplotlib.backends.backend_svg import FigureCanvasSVG
 data_directory = "C:/Users/nemslab4/Documents/"
 startTime = dt.now()
 app = Flask(__name__)
-#app.debug = True
+app.debug = True
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 engine = create_engine('sqlite:///'+os.path.join(data_directory, 'experiments.db'), echo=False)
@@ -69,11 +69,12 @@ def postSweepData(experiment_name):
 @app.route("/fig")
 def plot_svg():
     df = pd.read_sql_table("Dispersion",str(engine.url))
-    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index','timeStamp']}
+    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index','timeStamp','direction'] and len(df[column].unique())>1}
     df_fwd = df.loc[df['direction']==1]
     df_bkw = df.loc[df['direction']==-1]
     dfLen = len(df)
-    freqLen = len(df['f'].unique())
+    frequencies = df['f'].unique()
+    freqLen = len(frequencies)
     if dfLen%(freqLen*2) == 0:
         plotLenFwd = freqLen
         plotLenBkw = freqLen
@@ -86,17 +87,42 @@ def plot_svg():
             plotLenFwd = plotLen
             plotLenBkw = 0
 
-    dfIMG = df_fwd[['VgDC(V)','f','A']]
+    numPlots = len(sweepSpace.keys())
+    plotRows = ceil(numPlots/2)
+    plotCount = 1
+    for key in sweepSpace.keys():
 
-    imgdata = dfIMG.pivot(index='f',columns='VgDC(V)',values='A')
-    #fig, ax = plt.subplots(figsize=(6,6))
-    #ax.imshow(imgdata, cmap=plt.cm.Reds, interpolation='none', extent=[0,2,50,52])
-    fig = Figure()
-    axis = fig.add_subplot(1, 1, 1)
-    axis.imshow(imgdata, cmap=plt.cm.Reds, interpolation='none', extent=[0,2,50,52])
-    output = io.BytesIO()
-    FigureCanvasSVG(fig).print_svg(output)
-    return Response(output.getvalue(), mimetype="image/svg+xml")
+        fwdIMG = df_fwd[[str(key),'f','A']]
+        imgdata = fwdIMG.pivot(index='f',columns=str(key),values='A')
+        fig = Figure()
+        axis1 = fig.add_subplot(plotRows, 2, plotCount)
+        plotCount += 1
+
+        axis1.imshow(imgdata, interpolation='none'
+                           , extent=[min(sweepSpace[key]),max(sweepSpace[key]),
+                                    max(frequencies),min(frequencies)])
+
+        axis1.set_ylabel('Frequency (MZh)')
+        axis1.set_xlabel(str(key))
+        axis1.set_title('Amplitude Dispersion')
+
+        fwdIMG = df_fwd[[str(key),'f','P']]
+        imgdata = fwdIMG.pivot(index='f',columns=str(key),values='P')
+        axis2 = fig.add_subplot(plotRows, 2, plotCount, sharex=axis1)
+        plotCount += 1
+
+        axis2.imshow(imgdata, interpolation='none'
+                           , extent=[min(sweepSpace[key]),max(sweepSpace[key]),
+                                    max(frequencies),min(frequencies)])
+
+        axis2.set_xlabel(str(key))
+        axis2.set_yticklabels([])
+        axis2.set_title('Phase Dispersion')
+        output = io.BytesIO()
+        FigureCanvasSVG(fig).print_svg(output)
+        return Response(output.getvalue(), mimetype="image/svg+xml")
+    else:
+        return None
 
 
 if __name__ == '__main__':
