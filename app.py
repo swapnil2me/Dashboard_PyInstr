@@ -41,6 +41,60 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/postSweepData")
+def postSweepData():
+
+    df = pd.read_sql_table(experiment_name,str(engine.url))
+    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index','timeStamp']}
+    df_fwd = df.loc[df['direction']==1]
+    df_bkw = df.loc[df['direction']==-1]
+    dfLen = len(df)
+    freqLen = len(df['f'].unique())
+    if dfLen%(freqLen*2) == 0:
+        plotLenFwd = freqLen
+        plotLenBkw = freqLen
+    else:
+        plotLen = dfLen%(freqLen*2)
+        if plotLen > freqLen:
+            plotLenFwd = freqLen
+            plotLenBkw = plotLen - freqLen
+        else:
+            plotLenFwd = plotLen
+            plotLenBkw = 0
+    dataDict = {'fwd':{col: list(df_fwd.tail(plotLenFwd)[col]) for col in ['f','A','P']},
+                'bkw':{col: list(df_bkw.tail(plotLenBkw)[col]) for col in ['f','A','P']}}
+    response = jsonify(dataDict)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
+@app.route("/freqSweepLive")
+def freqSweepLive():
+
+    df = pd.read_sql_table(experiment_name,str(engine.url))
+    sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index','timeStamp']}
+    df_fwd = df.loc[df['direction']==1]
+    df_bkw = df.loc[df['direction']==-1]
+    dfLen = len(df)
+    freqLen = len(df['f'].unique())
+    if dfLen%(freqLen*2) == 0:
+        plotLenFwd = freqLen
+        plotLenBkw = freqLen
+    else:
+        plotLen = dfLen%(freqLen*2)
+        if plotLen > freqLen:
+            plotLenFwd = freqLen
+            plotLenBkw = plotLen - freqLen
+        else:
+            plotLenFwd = plotLen
+            plotLenBkw = 0
+    dataDict = {'fwd':{col: list(df_fwd.tail(plotLenBkw)[col]) for col in ['f','A','P']},
+                'bkw':{col: list(df_bkw.tail(plotLenBkw)[col]) for col in ['f','A','P']}}
+    response = jsonify(dataDict)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return render_template("freqResponse.html",plotData=dataDict)
+
+
 @app.route("/fig")
 def plot_svg():
 
@@ -63,6 +117,7 @@ def plot_svg():
             plotLenBkw = 0
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
+    print(plotLenFwd)
     df_fwd.tail(plotLenFwd).plot(ax=ax,x='f',y='P',style='r-')
     df_bkw.tail(plotLenBkw).plot(ax=ax,x='f',y='P',style='b-')
 

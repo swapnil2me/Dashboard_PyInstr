@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <script src="{{url_for('static', filename='d3.v4.js')}}"></script>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css')}}">
+    <title></title>
+  </head>
+  <body>
+    <script type="text/javascript">
+
+      var apiURL = "http://127.0.0.1:8001/postSweepData"
+      var times = 500; // gap in Milli Seconds;
+
+      setInterval(refreshPlot, times);
+      //refreshPlot();
+      function refreshPlot() {
+          d3.json(apiURL).get(function(error,plotData){
+            var svgtest = d3.select("body").select("svg");
+            if (!svgtest.empty()) {
+              console.log("updating !");
+              svgtest.remove();
+            }
+
+            //var plotData = JSON.parse('{{ plotData | tojson | safe}}');
+            //console.log(plotData.fwd);
+
+            var amplitudeFwd = plotData.fwd.A;
+            var freqFwd = plotData.fwd.f;
+            var amplitudeBkw = plotData.bkw.A;
+            var freqBkw = plotData.bkw.f;
+
+            var dataZipFwd = freqFwd.map(function (e,i) {return [e, amplitudeFwd[i]];});
+            var dataZipBkw = freqBkw.map(function (e,i) {return [e, amplitudeBkw[i]];});
+
+            //console.log(dataZipFwd,dataZipBkw);
+
+            var height = 300;
+            var width = 500;
+
+            var max = d3.max(amplitudeFwd);
+            var min = d3.min(amplitudeFwd);
+
+            var minFreq = d3.min(freqFwd);
+            var maxFreq = d3.max(freqFwd);
+
+            var y = d3.scaleLinear()
+                      .domain([min,max])
+                      .range([height,0]);
+
+            var x = d3.scaleLinear()
+                      .domain([minFreq, maxFreq])
+                      .range([0, width]);
+
+            var yAxis = d3.axisLeft(y);
+            var xAxis = d3.axisBottom(x);
+
+            var svg = d3.select("body").append("svg").attr("height","100%")
+                                                      .attr("width","100%");
+
+            var margin = {left:50, right:50, top:40, bottom:0};
+
+            var chartGroup = svg.append("g")
+                                .attr("transform","translate("+margin.left+","+margin.top+")");
+
+            var line= d3.line()
+                        .x(function (d) {return x(d[0]);})
+                        .y(function (d) {return y(d[1]);});
+
+            chartGroup.append("path")
+                      .attr("class","fwd")
+                      .attr("d",line(dataZipFwd));
+            chartGroup.append("path")
+                      .attr("class","bkw")
+                      .attr("d",line(dataZipBkw));
+            chartGroup.append("g").attr("class","x axis")
+                                  .attr("transform","translate(0,"+height+")")
+                                  .call(xAxis);
+            chartGroup.append("g").attr("class","y axis").call(yAxis);
+          });
+
+      }
+    </script>
+
+  </body>
+</html>
