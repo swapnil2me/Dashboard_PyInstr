@@ -21,7 +21,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 
-data_directory = "C:/Users/nemslab4/Documents/"
+data_directory = 'D:/Swapnil/OneDrive - Indian Institute of Science/001_Project_Data/003_PhD_Presentations/07_Thesis_Chapters/07_DRGN/DRGN_04/D07/17_TestingPythonImplementation'
 startTime = dt.now()
 app = Flask(__name__)
 app.debug = True
@@ -66,9 +66,9 @@ def postSweepData(experiment_name):
     return response
 
 
-@app.route("/fig")
-def plot_svg():
-    df = pd.read_sql_table("Dispersion",str(engine.url))
+@app.route("/fig-<experiment_name>")
+def plot_svg(experiment_name):
+    df = pd.read_sql_table(experiment_name,str(engine.url))
     sweepSpace = {column : list(df[column].unique()) for column in df.columns if column not in ['f','A','P','index','timeStamp','direction'] and len(df[column].unique())>1}
     df_fwd = df.loc[df['direction']==1]
     df_bkw = df.loc[df['direction']==-1]
@@ -91,16 +91,15 @@ def plot_svg():
     plotRows = ceil(numPlots/2)
     plotCount = 1
     for key in sweepSpace.keys():
-
         fwdIMG = df_fwd[[str(key),'f','A']]
         imgdata = fwdIMG.pivot(index='f',columns=str(key),values='A')
-        fig = Figure()
+        fig = Figure(figsize=(7,7))
         axis1 = fig.add_subplot(plotRows, 2, plotCount)
         plotCount += 1
-
         axis1.imshow(imgdata, interpolation='none'
                            , extent=[min(sweepSpace[key]),max(sweepSpace[key]),
-                                    max(frequencies),min(frequencies)])
+                                    max(frequencies),min(frequencies)]
+                           , aspect='auto')
 
         axis1.set_ylabel('Frequency (MZh)')
         axis1.set_xlabel(str(key))
@@ -108,25 +107,33 @@ def plot_svg():
 
         fwdIMG = df_fwd[[str(key),'f','P']]
         imgdata = fwdIMG.pivot(index='f',columns=str(key),values='P')
-        axis2 = fig.add_subplot(plotRows, 2, plotCount, sharex=axis1)
+        axis2 = fig.add_subplot(plotRows, 2, plotCount)
         plotCount += 1
-
         axis2.imshow(imgdata, interpolation='none'
                            , extent=[min(sweepSpace[key]),max(sweepSpace[key]),
-                                    max(frequencies),min(frequencies)])
+                                    max(frequencies),min(frequencies)]
+                           , aspect='auto')
 
         axis2.set_xlabel(str(key))
         axis2.set_yticklabels([])
         axis2.set_title('Phase Dispersion')
         output = io.BytesIO()
         FigureCanvasSVG(fig).print_svg(output)
+
+
+    if plotCount>1:
         return Response(output.getvalue(), mimetype="image/svg+xml")
     else:
-        return None
+        fig = Figure(figsize=(7,7))
+        axis1 = fig.add_subplot(1, 1, 1)
+        output = io.BytesIO()
+        FigureCanvasSVG(fig).print_svg(output)
+        return Response(output.getvalue(), mimetype="image/svg+xml")
 
 
 if __name__ == '__main__':
 
     import webbrowser
-    webbrowser.open("http://127.0.0.1:8001/")
-    app.run(port=8001)
+    webbrowser.open("http://10.56.240.202:8001/")
+    app.run(host = '10.56.240.202',port=8001)
+    #app.run(port=8001)

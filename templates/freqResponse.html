@@ -16,7 +16,8 @@
     <div class="imageSC">
 
       <h3>Dispersion Figure</h3>
-      <img id="img" src="/fig"
+      <img id="img" src="/fig-{{experiment}}"
+      height="500"
       >
 
     </div>
@@ -24,7 +25,7 @@
     <script type="text/javascript">
 
       var experiment = "{{experiment}}";
-      var apiURL = "http://127.0.0.1:8001/postSweepData-"+experiment;
+      var apiURL = "http://10.56.240.202:8001/postSweepData-"+experiment;
       var times = 500; // gap in Milli Seconds;
 
       function refresh(node)
