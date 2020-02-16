@@ -1,2 +1,2 @@
-# Dashbord_PyInstr
+# Dashboard_PyInstr
 ![](reprGif/instrDashbord.gif)
