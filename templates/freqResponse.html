@@ -36,7 +36,7 @@
     <script type="text/javascript">
 
       var experiment = "{{experiment}}";
-      var apiURL = "http://127.0.0.1:8001/postSweepData-"+experiment;
+      var apiURL = "http://10.56.240.202:8001/postSweepData-"+experiment;
       var times = 500; // gap in Milli Seconds;
 
       function refresh(node)
@@ -60,13 +60,13 @@
         {
           var node = document.getElementById('img');
 
-          //refresh(node);
+          refresh(node);
 
           // you can refresh as many images you want just repeat above steps
         };
 
-      //setInterval(refreshPlot, times);
-      refreshPlot();
+      setInterval(refreshPlot, times);
+      //refreshPlot();
       function refreshPlot() {
           d3.json(apiURL).get(function(error,plotData){
             var svgtest = d3.select("#liveRun").select("svg");
