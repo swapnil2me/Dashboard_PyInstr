@@ -101,8 +101,8 @@ def plot_svg(experiment_name):
                                     max(frequencies),min(frequencies)]
                            , aspect='auto')
 
-        axis1.set_ylabel('Frequency (MZh)')
-        axis1.set_xlabel(str(key))
+        axis1.set_ylabel('Frequency (MHz)', fontsize=14)
+        axis1.set_xlabel(str(key), fontsize=14)
         axis1.set_title('Amplitude Dispersion')
 
         fwdIMG = df_fwd[[str(key),'f','P']]
@@ -114,7 +114,7 @@ def plot_svg(experiment_name):
                                     max(frequencies),min(frequencies)]
                            , aspect='auto')
 
-        axis2.set_xlabel(str(key))
+        axis2.set_xlabel(str(key), fontsize=14)
         axis2.set_yticklabels([])
         axis2.set_title('Phase Dispersion')
         output = io.BytesIO()

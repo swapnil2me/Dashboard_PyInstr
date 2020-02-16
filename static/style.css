@@ -7,11 +7,18 @@ line {
   stroke: red;
 }
 
+#liveRun {
+    margin: 0 auto;
+ }
+
 .liveRun {
     height: 500px;
     width: 700px;
 }
 
+#imageSC {
+    margin: 0 auto;
+ }
 .imageSC {
     height: 400px;
     width: 700px;

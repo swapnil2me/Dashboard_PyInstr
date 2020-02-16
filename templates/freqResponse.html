@@ -2,30 +2,41 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
-    <script src="{{url_for('static', filename='d3.v4.js')}}"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css')}}">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    <script src="{{url_for('static', filename='d3.v4.js')}}"></script>
+
+
+
     <title></title>
   </head>
   <body>
+    <div class="card" >
+      <div class="card-header" align="center"><h3>Current Frequency Sweep</h3></div>
+      <div id="liveRun">
 
-    <div class="liveRun">
-      <h3>Current Frequency Sweep</h3>
 
+      </div>
     </div>
 
-    <div class="imageSC">
+    <div class="card">
+      <div class="card-header" align="center"><h3>Dispersion</h3></div>
+      <div id="imageSC" >
+        <img id="img" src="/fig-{{experiment}}"
 
-      <h3>Dispersion Figure</h3>
-      <img id="img" src="/fig-{{experiment}}"
-      height="500"
-      >
+        >
 
-    </div>
+      </div>
+  </div>
 
     <script type="text/javascript">
 
       var experiment = "{{experiment}}";
-      var apiURL = "http://10.56.240.202:8001/postSweepData-"+experiment;
+      var apiURL = "http://127.0.0.1:8001/postSweepData-"+experiment;
       var times = 500; // gap in Milli Seconds;
 
       function refresh(node)
@@ -49,16 +60,16 @@
         {
           var node = document.getElementById('img');
 
-          refresh(node);
+          //refresh(node);
 
           // you can refresh as many images you want just repeat above steps
         };
 
-      setInterval(refreshPlot, times);
-      //refreshPlot();
+      //setInterval(refreshPlot, times);
+      refreshPlot();
       function refreshPlot() {
           d3.json(apiURL).get(function(error,plotData){
-            var svgtest = d3.select(".liveRun").select("svg");
+            var svgtest = d3.select("#liveRun").select("svg");
             if (!svgtest.empty()) {
               console.log("updating live plot!");
               svgtest.remove();
@@ -79,8 +90,8 @@
             var height = 400;
             var width = 700;
 
-            var max = d3.max(amplitudeFwd);
-            var min = d3.min(amplitudeFwd);
+            var max = d3.max(amplitudeFwd.concat(amplitudeBkw));
+            var min = d3.min(amplitudeFwd.concat(amplitudeBkw));
 
             var minFreq = d3.min(freqFwd);
             var maxFreq = d3.max(freqFwd);
@@ -96,10 +107,10 @@
             var yAxis = d3.axisLeft(y);
             var xAxis = d3.axisBottom(x);
 
-            var svg = d3.select(".liveRun").append("svg")
+            var svg = d3.select("#liveRun").append("svg")
                                             .attr("class","liveRun");
 
-            var margin = {left:100, right:50, top:40, bottom:0};
+            var margin = {left:110, right:50, top:50, bottom:0};
 
             var chartGroup = svg.append("g")
                                 .attr("transform","translate("+margin.left+","+margin.top+")");
@@ -126,8 +137,8 @@
             chartGroup.append("g").attr("class","y axis").call(yAxis);
             chartGroup.append("text")
                       .attr("transform", "rotate(-90)")
-                      .attr("y", 0 - margin.left)
-                      .attr("x",0 - (height / 2))
+                      .attr("y", 0 - margin.left+6)
+                      .attr("x",0 - (height / 2) + 50)
                       .attr("dy", "1em")
                       .style("text-anchor", "middle")
                       .text("Amplitude (nA)");

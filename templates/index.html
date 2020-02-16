@@ -2,14 +2,40 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+
+    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
+    <style>
+      body {
+      font-family: 'Roboto Slab';font-size: 22px;
+      }
+    </style>
+
+
     <title></title>
   </head>
   <body>
-    <h1>available experiment tables in : {{directory}}</h1>
-    <ul id="navigation">
-      {% for experiment in experiments %}
-          <li><a href="/freqSweepLive-{{experiment}}">{{ experiment }}</a></li>
-      {% endfor %}
-    </ul>
+    <div class="card" >
+      <div class="card-header"><h2>Available experiment tables in <mark><code> {{directory}} </code></mark>:</h2></div>
+      <div class="card-body" id="liveRun">
+
+        <nav class="navbar bg-light">
+          <ul class="navbar-nav">
+            {% for experiment in experiments %}
+              <li class="nav-item">
+                <a class="nav-link" href="/freqSweepLive-{{experiment}}">{{ experiment }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+
+      </div>
+    </div>
+
+
   </body>
 </html>
